@@ -1,4 +1,33 @@
+networks:
+  gatekeeper-net:
+    driver: bridge
+
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: gatekeeper-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    networks:
+      - gatekeeper-net
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+          cpus: '0.2'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
   gatekeeper:
     build: .
     container_name: gatekeeper
@@ -7,8 +36,13 @@ services:
       - "${PORT:-4000}:4000"
     env_file:
       - .env
+    networks:
+      - gatekeeper-net
     volumes:
       - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -27,3 +61,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  redis-data:

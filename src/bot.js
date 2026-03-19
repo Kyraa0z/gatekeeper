@@ -2,7 +2,8 @@ process.env.NTBA_FIX_350 = 1;
 const TelegramBot = require('node-telegram-bot-api');
 const { db }      = require('./database');
 const { accessLogger, systemLogger } = require('./logger');
-const fs   = require('fs');
+const fs    = require('fs');
+const cache = require('./cache');
 const path = require('path');
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────
@@ -326,6 +327,8 @@ function initBot(token, adminId, io) {
                 // status_update:idle yerine ayrı event — bağlantı sırasındaki idle
                 // ile karıştırılmaz, sonsuz döngü olmaz.
                 io.to(value).emit('force_reload');
+                cache.deleteSession(value);
+                cache.deleteToken(value);
                 accessLogger.info(`Kullanıcı atıldı: session=${value}`);
                 bot.editMessageText('⚠️ Yetki kaldırıldı, kullanıcı atıldı.', {
                     chat_id: query.message.chat.id,
@@ -343,6 +346,8 @@ function initBot(token, adminId, io) {
                 db.run("INSERT OR IGNORE INTO blocked_devices (device_id) VALUES (?)", [row.device_id]);
                 db.run("DELETE FROM visitors WHERE session_id = ?", [value], () => {
                     io.to(value).emit('status_update', { status: 'blocked' });
+                    cache.deleteSession(value);
+                    cache.deleteToken(value);
                     accessLogger.warn(`Banlandı: ip=${row.ip} device=${row.device_id} session=${value}`);
                     bot.editMessageText(`🚫 <code>${row.ip}</code> banlandı.`, {
                         chat_id: query.message.chat.id,
