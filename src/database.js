@@ -21,11 +21,16 @@ const initDB = () => {
             user_agent  TEXT,
             status      TEXT,
             jwt_token   TEXT,
+            user_note   TEXT,
             last_seen   DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
+
         db.run("CREATE TABLE IF NOT EXISTS blocked_ips     (ip        TEXT PRIMARY KEY)");
         db.run("CREATE TABLE IF NOT EXISTS blocked_devices (device_id TEXT PRIMARY KEY)");
+
+        // Mevcut DB'lerde jwt_token kolonu yoksa ekle (migration)
         db.run("ALTER TABLE visitors ADD COLUMN jwt_token TEXT", () => {});
+        db.run("ALTER TABLE visitors ADD COLUMN user_note TEXT", () => {});
     });
 };
 

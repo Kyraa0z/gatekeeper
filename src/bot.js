@@ -110,6 +110,37 @@ function initBot(token, adminId, io) {
         );
     });
 
+    // ── /ping komutu ──────────────────────────────────────────────────────────────
+    bot.onText(/\/ping/, (msg) => {
+        if (msg.chat.id.toString() !== adminId) return;
+        const mem     = process.memoryUsage();
+        const uptimeSec = process.uptime();
+        const h = Math.floor(uptimeSec / 3600);
+        const m = Math.floor((uptimeSec % 3600) / 60);
+        const s = Math.floor(uptimeSec % 60);
+        const uptime = `${h}sa ${m}dk ${s}sn`;
+        const rss    = (mem.rss / 1024 / 1024).toFixed(1);
+        const heap   = (mem.heapUsed / 1024 / 1024).toFixed(1);
+
+        db.get('SELECT COUNT(*) AS total, SUM(CASE WHEN status="approved" THEN 1 ELSE 0 END) AS approved, SUM(CASE WHEN status="pending" THEN 1 ELSE 0 END) AS pending FROM visitors', [], async (err, stats) => {
+            let socketCount = 0;
+            try { const sockets = await io.fetchSockets(); socketCount = sockets.length; } catch(e) {}
+
+            bot.sendMessage(adminId,
+                `🏓 <b>Pong!</b> Sunucu çalışıyor.\n\n` +
+                `⏱ <b>Uptime:</b> ${uptime}\n` +
+                `💾 <b>Bellek (RSS):</b> ${rss} MB\n` +
+                `🧠 <b>Heap:</b> ${heap} MB\n\n` +
+                `🔌 <b>Bağlı soket:</b> ${socketCount}\n` +
+                `👥 <b>Toplam ziyaretçi:</b> ${stats.total}\n` +
+                `✅ <b>Yetkili:</b> ${stats.approved}\n` +
+                `⏳ <b>Beklemede:</b> ${stats.pending}\n\n` +
+                `⚙️ <b>Zaman aşımı:</b> ${timeoutMinutes > 0 ? timeoutMinutes + ' dk' : 'devre dışı'}`,
+                { parse_mode: 'HTML' }
+            );
+        });
+    });
+
     // ── /ara komutu ───────────────────────────────────────────────────────────
     bot.onText(/\/ara (.+)/, (msg, match) => {
         if (msg.chat.id.toString() !== adminId) return;
@@ -397,7 +428,10 @@ function initBot(token, adminId, io) {
                     accessLogger.info(`Onaylandı: session=${value}`);
                     bot.editMessageText('✅ Onaylandı.', {
                         chat_id: query.message.chat.id,
-                        message_id: query.message.message_id
+                        message_id: query.message.message_id,
+                        reply_markup: { inline_keyboard: [[
+                            { text: '📝 Not Ekle', callback_data: `addnote_${value}` }
+                        ]]}
                     }).finally(() => bot.answerCallbackQuery(query.id, { text: 'Onaylandı.' }));
                 });
             });
@@ -583,6 +617,35 @@ function initBot(token, adminId, io) {
                     }).finally(() => bot.answerCallbackQuery(query.id, { text: 'Tümü silindi.' }));
                 });
             }
+        }
+
+        // ── addnote ──────────────────────────────────────────────────────────
+        else if (action === 'addnote') {
+            bot.answerCallbackQuery(query.id, { text: 'Notunuzu yazın ve gönderin.' });
+            bot.sendMessage(adminId,
+                `📝 <b>${value}</b> oturumuna not ekleyin.\nNot olarak bir mesaj gönderin:`,
+                { parse_mode: 'HTML', reply_markup: { force_reply: true, selective: true } }
+            ).then((sentMsg) => {
+                // Bir sonraki mesajı bekle
+                const listener = (replyMsg) => {
+                    if (replyMsg.chat.id.toString() !== adminId) return;
+                    if (replyMsg.reply_to_message?.message_id !== sentMsg.message_id) return;
+                    bot.removeListener('message', listener);
+                    const note = replyMsg.text?.substring(0, 300) || '';
+                    db.run(
+                        "UPDATE visitors SET user_note = ? WHERE session_id = ?",
+                        [note, value],
+                        (err) => {
+                            if (err) return bot.sendMessage(adminId, '❌ Not kaydedilemedi.');
+                            accessLogger.info(`Not eklendi: session=${value} note="${note}"`);
+                            bot.sendMessage(adminId, `✅ Not kaydedildi: <i>${note}</i>`, { parse_mode: 'HTML' });
+                        }
+                    );
+                };
+                bot.on('message', listener);
+                // 2 dakika sonra listener'ı kaldır
+                setTimeout(() => bot.removeListener('message', listener), 120000);
+            });
         }
 
         else {
