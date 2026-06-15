@@ -1,7 +1,7 @@
 {
   "name": "gatekeeper",
   "version": "1.1.0",
-  "description": "Raspberry Pi GateKeeper - Telegram Auth System",
+  "description": "GateKeeper - Telegram Auth System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
