@@ -1,52 +1,52 @@
 # 🛡️ GateKeeper
 
-Telegram üzerinden manuel onay gerektiren, JWT tabanlı güvenli erişim kontrol sistemi.
+A JWT-based secure access control system featuring manual approval via Telegram.
 
-## Nasıl Çalışır?
+## How It Works?
 
-1. Kullanıcı siteye girer, not bırakır ve Cloudflare Turnstile doğrulamasını tamamlar
-2. Yöneticiye Telegram üzerinden bildirim gelir (IP, tarayıcı, işletim sistemi bilgileriyle)
-3. Yönetici **Onayla** veya **Reddet** butonuna basar
-4. Onaylanan kullanıcıya JWT token verilir, korumalı sayfalara erişebilir
-5. Yönetici istediği zaman yetkiyi kaldırabilir veya kullanıcıyı banlaabilir
+1. The user visits the site, leaves a note, and completes the Cloudflare Turnstile verification.
+2. The administrator receives a notification via Telegram (including IP, browser, and OS details).
+3. The administrator clicks the Approve or Reject button.
+4. Approved users are granted a JWT token, allowing them to access protected pages.
+5. The administrator can revoke permissions or ban users at any time.
 
-## Özellikler
+## Features
 
-- 🔐 Telegram üzerinden tek tıkla onay/red/ban
-- 🤖 Bot doğrulaması (Cloudflare Turnstile)
-- 🪪 JWT tabanlı oturum yönetimi
+- 🔐 One-click approve/reject/ban via Telegram
+- 🤖 Bot verification (Cloudflare Turnstile)
+- 🪪 JWT-based session management
 - 🚦 Rate limiting (HTTP + Socket.IO)
-- 📊 İstatistikler ve günlük özet raporu
-- ⏱️ Otomatik zaman aşımı (onaylanmayan talepler otomatik reddedilir)
-- 🔍 Cihaz parmak izi (FingerprintJS)
-- 📋 Kategorili log sistemi
-- 🗑️ Bot üzerinden veritabanı temizleme
-- 🐳 Docker desteği
-- 🔌 Başka projelere entegre edilebilir (`gatekeeper.js`)
+- 📊 Statistics and daily summary reports
+- ⏱️ Automatic timeout (unapproved requests are automatically rejected)
+- 🔍 Device fingerprinting (FingerprintJS)
+- 📋 Categorized logging system
+- 🗑️ Database cleanup via the bot
+- 🐳 Docker support
+- 🔌 Integrates easily into other projects (`gatekeeper.js`)
 
-## Kurulum
+## Installation
 
-### Gereksinimler
+### Requirements
 
 - Node.js 20+
-- Docker (opsiyonel)
+- Docker (optional)
 - Telegram bot token ([BotFather](https://t.me/BotFather))
-- Cloudflare Turnstile hesabı
+- Cloudflare Turnstile account
 
-### 1. Repoyu klonlayın
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Kyraa0z/gatekeeper.git
 cd gatekeeper
 ```
 
-### 2. Paketleri kurun
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. `.env` dosyasını oluşturun
+### 3. Create the `.env` file
 
 ```bash
 cp .env.example .env
@@ -63,35 +63,35 @@ PORT=4000
 APPROVAL_TIMEOUT_MINUTES=10
 ```
 
-> `JWT_SECRET` için güçlü bir değer üretmek: `openssl rand -hex 32`
+> Generating a strong value for `JWT_SECRET`:`openssl rand -hex 32`
 
-### 4. Başlatın
+### 4. Start the application
 
-**Node ile:**
+**Using Node:**
 ```bash
 node server.js
 ```
 
-**Docker ile:**
+**Using Docker:**
 ```bash
 docker compose up -d
 ```
 
-## Telegram Bot Komutları
+## Telegram Bot Commands
 
-| Komut | Açıklama |
+| Command | Description |
 |-------|----------|
-| `/start` | Yönetim panelini açar |
-| 🌐 Sitedeki Aktifler | Şu an bağlı ve yetkili kullanıcılar |
-| 🔑 Tüm Yetkililer | Veritabanındaki tüm onaylı kullanıcılar |
-| 🚫 Engelli Listesi | Banlı IP listesi |
-| 📋 Log Kategorileri | Erişim, sistem ve hata logları |
-| 📊 İstatistikler | Genel istatistikler |
-| 🗑️ Veritabanı Temizle | Eski kayıtları temizle |
+| `/start` | Opens the admin panel |
+| 🌐 Sitedeki Aktifler | Currently connected and authorized users |
+| 🔑 Tüm Yetkililer | All approved users in the database |
+| 🚫 Engelli Listesi | Banned IP list |
+| 📋 Log Kategorileri | Access, system, and error logs |
+| 📊 İstatistikler | General statistics |
+| 🗑️ Veritabanı Temizle | Clean up old database records |
 
-## Başka Projeye Entegrasyon
+## Integrating with Other Projects
 
-GateKeeper'ı kendi projenize tek satırla ekleyebilirsiniz:
+You can add GateKeeper to your own project with a single line:
 
 ```js
 const gatekeeper = require('./gatekeeper/gatekeeper');
@@ -111,19 +111,19 @@ app.get('/panel', gatekeeper.protect(), (req, res) => {
 });
 ```
 
-### JWT Doğrulama Endpoint'i
+### JWT Verification Endpoint
 
 ```
 GET /gatekeeper/verify
 Authorization: Bearer <token>
 ```
 
-**Yanıt:**
+**Response:**
 ```json
 { "valid": true, "sessionId": "abc123", "ip": "1.2.3.4" }
 ```
 
-### Frontend'den Korumalı API Çağrısı
+### Protected API Call from Frontend
 
 ```js
 const token = localStorage.getItem('gk_token');
@@ -135,36 +135,36 @@ fetch('/panel/veri', {
 .then(data => console.log(data));
 ```
 
-## Proje Yapısı
+## Project Structure
 
 ```
 gatekeeper/
-├── server.js           # Ana sunucu
-├── gatekeeper.js       # Entegrasyon modülü
+├── server.js           # Main server
+├── gatekeeper.js       # Integration module
 ├── src/
 │   ├── bot.js          # Telegram bot
-│   ├── database.js     # SQLite veritabanı
+│   ├── database.js     # SQLite database
 │   └── logger.js       # Winston logger
 ├── public/
-│   └── index.html      # Kullanıcı arayüzü
-├── data/               # Veritabanı ve loglar (git'e eklenmez)
+│   └── index.html      # User interface
+├── data/               # Database and logs (ignored by git)
 ├── Dockerfile
 ├── docker-compose.yml
 └── .env.example
 ```
 
-## Ortam Değişkenleri
+## Environment Variables
 
-| Değişken | Açıklama | Varsayılan |
+| Variable | Description | Default |
 |----------|----------|------------|
-| `TELEGRAM_BOT_TOKEN` | Bot token (BotFather'dan) | — |
-| `ADMIN_CHAT_ID` | Yönetici Telegram ID | — |
+| `TELEGRAM_BOT_TOKEN` | Bot token (from BotFather) | — |
+| `ADMIN_CHAT_ID` | Admin Telegram ID | — |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret | — |
-| `JWT_SECRET` | JWT imzalama anahtarı | — |
-| `JWT_EXPIRES_IN` | Token geçerlilik süresi | `7d` |
-| `PORT` | Sunucu portu | `4000` |
-| `APPROVAL_TIMEOUT_MINUTES` | Onay zaman aşımı (0=devre dışı) | `10` |
+| `JWT_SECRET` | JWT signing key | — |
+| `JWT_EXPIRES_IN` | Token expiration time | `7d` |
+| `PORT` | Server port | `4000` |
+| `APPROVAL_TIMEOUT_MINUTES` | Approval timeout (0=disabled) | `10` |
 
-## Lisans
+## License
 
 MIT
