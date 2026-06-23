@@ -134,7 +134,19 @@ io.on('connection', (socket) => {
                         return socket.emit('status_update', { status: 'idle' });
                     }
 
-                    const note = data.note ? data.note.substring(0, 200) : '';
+                    function escapeHTML(str) {
+                        return str.replace(/[&<>'"]/g, 
+                            tag => ({
+                                '&': '&amp;',
+                                '<': '&lt;',
+                                '>': '&gt;',
+                                "'": '&#39;',
+                                '"': '&quot;'
+                            }[tag] || tag)
+                        );
+                    }
+                    const rawNote = data.note ? data.note.substring(0, 200) : '';
+                    const note = escapeHTML(rawNote);
                     const ua   = socket.handshake.headers['user-agent'];
 
                     db.run(
